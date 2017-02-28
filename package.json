@@ -9,6 +9,7 @@
   "author": "aksjer",
   "license": "ISC",
   "dependencies": {
+    "body-parser": "^1.16.1",
     "express": "^4.14.1",
     "jsonwebtoken": "^7.3.0",
     "mongodb": "^2.2.24",

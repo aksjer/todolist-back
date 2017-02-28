@@ -1,22 +1,23 @@
-const mongoose = require('mongoose').connect('mongodb://localhost/myapi'),
-  express = require('express'),
-  jwt = require('jsonwebtoken'),
-  passwordHash = require('password-hash'),
-  bodyParser = require('body-parser'),
+const express = require('express'),
   app = express(),
-  Todo = mongoose.model('todo', new mongoose.Schema({
-    id: Number,
-    title: String,
-    finish: Boolean,
-    description: String,
-    update_at: { type: Date, default: Date.now }
-  })),
-  User = mongoose.model('users', new mongoose.Schema({
-    id: Number,
-    name: String,
-    password: String
-  }))
-secret = 'baddb054-1c6d-4872-bde8-ed0a5ada6f6d';
+  mongoose = require('mongoose').connect('mongodb://localhost/todolist-api'),
+  jwt = require('jsonwebtoken'),
+  bodyParser = require('body-parser'),
+  secret = 'baddb054-1c6d-4872-bde8-ed0a5ada6f6d';
+
+const Todo = mongoose.model('todos', new mongoose.Schema({
+  id: Number,
+  title: String,
+  description: String,
+  status: Number,
+  date: Date
+}));
+
+const User = mongoose.model('users', new mongoose.Schema({
+  id: Number,
+  login: String,
+  password: String
+}));
 
 app
   .use(bodyParser.urlencoded({ extended: true }))
@@ -70,18 +71,11 @@ app
     Todo.find({ id: req.params.id }, (err, data) => res.json(data));
   })
   .get('/todos', (req, res) => {
-    // console.log(req.headers.authorization)
     jwt.verify(req.headers.authorization, secret, (err, decoded) => {
-      // console.log(decoded)
       if (err)
         return res.json(err)
       Todo.find({}, (err, data) => res.json(data));
     })
-
-    // setTimeout(() => {
-
-    // }, 5000);
-
   })
   .post('/todo', (req, res, next) => {
     Todo.create(req.body, (err, post) => {
