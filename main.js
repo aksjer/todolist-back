@@ -15,8 +15,10 @@ const express = require('express'),
   })),
   Users = mongoose.model('users', new mongoose.Schema({
     _id: Number,
-    user: String,
-    pwd: String,
+    email: String,
+    verified: Boolean,
+    name: String,
+    password: String,
     roles: []
   }));
 
@@ -30,41 +32,39 @@ app
     next();
   })
   .post('/authenticate', (req, res) => {
-    Users.findOne({ user: req.body.name }, (err, account) => {
+    Users.findOne({ email: req.body.email }, (err, user) => {
       if (err)
         return res.json({ success: false, err: err, code: 0 });
-      if (!account)
+      if (!user)
         return res.json({ success: false, err: 'User not found', code: 1 });
       hash.update(req.body.password)
-      if (account.pwd !== hash.digest('hex'))
+      if (user.password !== hash.digest('hex'))
         return res.json({ success: false, err: 'Incorrect password', code: 2 });
       return res.json({
         success: true,
-        user: account.user,
-        token: jwt.sign(account, secret, {
+        user: { name: user.name, email: user.email },
+        token: jwt.sign(user, secret, {
           expiresIn: 1440
         })
       })
     })
   })
-  .get('/todo/:id', (req, res) => {
+  .get('/todo/:id', auth, (req, res) => {
     Todos.find({ id: req.params.id }, (err, data) => res.json(data));
   })
   .get('/todos', auth, (req, res) => {
     Todos.find({}, (err, todos) => res.send(todos))
   })
-  .post('/todo', (req, res, next) => {
+  .post('/todo', auth, (req, res, next) => {
     Todos.create(req.body, (err, post) => {
       if (err) return next(err);
       res.json(post);
     })
   })
-  .put('/todo/:id', (req, res) => {
-    Todos.update({ id: req.params.id }, req.body, (err, data) => {
-      res.json(data);
-    })
+  .put('/todo/:id', auth, (req, res) => {
+    Todos.update({ id: req.params.id }, req.body, (err, data) => res.json(data))
   })
-  .delete('/todo/:id', (req, res) => {
+  .delete('/todo/:id', auth, (req, res) => {
     Todos.remove({ id: req.params.id }, (err, data) => res.json(data));
   })
   .listen(3000);
@@ -73,6 +73,8 @@ function auth(req, res, next) {
   jwt.verify(req.headers.authorization, secret, (err, decoded) => {
     if (err)
       return res.status(403).send();
+    if (!decoded._doc.verified)
+      return res.json({ err: 'please validate your email' });
     next();
   });
 }
